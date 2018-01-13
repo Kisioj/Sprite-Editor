@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Sprite Editor</title>
+
+
+    <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="main.css" rel="stylesheet">
+
+
+</head>
+<body role="document">
+<div class="container theme-showcase" role="main">
+    <div class="page-header">
+        <h1>Sprite Editor</h1>
+    </div>
+
+    <div class="col-md-6">
+        <canvas width="544" height="544"></canvas>
+        <div id="select_content" class="btn-group">
+
+
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">
+                <span id="button_title">Edytor animacji</span><span class="caret"></span>
+            </button>
+
+            <ul class="dropdown-menu">
+                <li><a id="select_controls" href="#">Sterowanie</a></li>
+                <li><a id="select_animation_editor" href="#" class="selected">Edytor animacji</a></li>
+            </ul>
+
+        </div>
+
+
+        <div id="controls" style="display:none;">
+            <p><span>w a s d</span>ruch postacią</p>
+
+            <p><span>mousemove</span>zmiana kierunku postaci</p>
+            <p><span>`</span>przełączanie między trybem widoczności okręgów kolizji</p>
+
+            <p><span>< ></span>przełączanie między częściami ciała</p>
+
+            <p><span>- + i [ ]</span>skalowanie w poziomie i pionie wybranej części ciała</p>
+
+            <p><span>; '</span>zmiana kąta wybranej części ciała</p>
+
+            <p><span>↑ ← → ↓</span>zmiana offsetu wybranej części ciała</p>
+
+            <p><span>drag & drop</span>zmiana offsetu wybranej części ciała</p>
+        </div>
+        <div id="animation_editor">
+            <div class="col-md-6">
+                <div class="row">
+                    <h3 style="display:inline; margin-right: 2px;">Animation</h3>
+                    <input value="animation" name="display" type="radio" class="form-control" style="position:relative; top:8px;">
+                </div>
+                <div class="row">
+                    <div class="player-attribute even_longer">
+                        <input id="animation_name" type="text" class="form-control" value="base">
+                    </div>
+                </div>
+                <div class="row">
+                    <p>Total frames: <span id="total_frames">1</span></p>
+
+                    <p>Total time: <span id="total_time">1000</span></p>
+
+                    <p>Both way animation: <input id="both-way" type="checkbox"></p>
+
+                    <p>Activate on move: <input id="on-move" type="checkbox"></p>
+                    <button type="button" class="btn btn-lg btn-success player-attribute x2" id="new-frame">New frame
+                    </button>
+                </div>
+            </div>
+            <div id="frame-rows" class="col-md-6" style="max-height: 200px; overflow: auto;">
+                <div class="row">
+                    <div class="player-attribute long_enough" style="margin-left: 74px;"><h5>Time (ms)</h5></div>
+                </div>
+                <div class="row">
+                    <span class="counter">#0</span>
+                    <input id="frame_0" name="display" type="radio" class="form-control" style="float:left;" checked>
+                    <div class="player-attribute long_enough"><input id="time_0" type="number" class="frame-time form-control" value="1000"></div>
+                    <button type="button" class="row-removal btn btn-lg btn-danger player-attribute small_square" disabled>X</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="row">
+            <h6 class="player-attribute-name"></h6>
+
+            <div class="player-attribute"><h5>Offset x</h5></div>
+            <div class="player-attribute"><h5>Offset y</h5></div>
+            <div class="player-attribute"><h5>Angle (°)</h5></div>
+            <div class="player-attribute"><h5>Scl x (%)</h5></div>
+            <div class="player-attribute"><h5>Scl y (%)</h5></div>
+            <div class="player-attribute"><h5>Group (#)</h5></div>
+            <div class="player-attribute-hide"><h5>Hide</h5></div>
+        </div>
+
+        <div id="body_editor"></div>
+
+        <div class="row" id="3_buttons">
+
+            <button type="button" class="btn btn-lg btn-success player-attribute" id="save">Save</button>
+
+            <button type="button" class="btn btn-lg btn-primary player-attribute" id="load">Load</button>
+
+            <button type="button" class="btn btn-lg btn-danger player-attribute" id="reset">Reset</button>
+
+
+            <textarea class="form-control" rows="10"></textarea>
+
+        </div>
+
+        <div class="row" id="3_anim_buttons">
+            <button type="button" class="btn btn-lg btn-success player-attribute x2" id="save_anim" disabled>Save Animation
+            </button>
+
+            <button type="button" class="btn btn-lg btn-primary player-attribute x2" id="load_anim" disabled>Load Animation
+            </button>
+
+            <button type="button" class="btn btn-lg btn-danger player-attribute x2" id="reset_anim" disabled>Reset Animation
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="static/bootstrap/js/jquery.min.js"></script>
+<script src="static/bootstrap/js/bootstrap.min.js"></script>
+</body>
+
+<script>
+    var edit_index = 0;
+    var show_collision_cirles = true;
+
+
+
+    $("#save_anim").click(function(){
+        var save_data = new Object();
+        save_data.name = player.anim.name;
+        save_data.reverse_too = player.anim.reverse_too;
+        save_data.move_only = player.anim.move_only;
+        save_data.frames = [];
+
+        for(var i=0;i<player.anim.frames.length;++i){
+            save_data.frames.push({
+                time: player.anim.frames[i].time,
+                settings: player.anim.frames[i].body_settings
+            });
+        }
+
+
+        var json_data = JSON.stringify(save_data);
+        document.getElementsByTagName('textarea')[0].value = json_data;
+
+    });
+
+
+    $("#load_anim").click(function() {
+        var json_data = document.getElementsByTagName('textarea')[0].value;
+        var load_data = JSON.parse(json_data);
+
+
+        player.anim.name = load_data.name;
+        player.anim.reverse_too = load_data.reverse_too;
+        player.anim.move_only = load_data.move_only;
+
+
+        player.anim.frames = [];
+
+        var total_time = 0;
+
+        for(var i=0;i<load_data.frames.length;++i){
+            var frame_data = load_data.frames[i];
+            var frame = new Frame();
+            frame.time = frame_data.time;
+            frame.body_settings = frame_data.settings;
+            player.anim.frames.push(frame);
+            total_time += frame_data.time;
+        }
+
+        player.anim.current_frame_index = 0;
+        player.anim.current_frame = player.anim.frames[0];
+        player.anim.time = total_time;
+
+
+        player.anim.next_frame_time = player.anim.frames[0].time;
+        player.anim.last_update_time = null;
+        player.anim.going_back = false;
+
+
+        $("#animation_name").val(player.anim.name);
+        $("#total_frames").text(player.anim.frames.length);
+        $("#total_time").text(player.anim.time);
+
+        $("#both-way")[0].checked = player.anim.reverse_too;
+        $("#on-move")[0].checked = player.anim.move_only;
+
+        $frame_rows = $("#frame-rows").find("div.row");
+        $frame_rows = $frame_rows.slice(2,$frame_rows.size());
+        $frame_rows.remove();
+
+        $("#time_0").val(player.anim.frames[0].time);
+
+        for(i=1;i<player.anim.frames.length;++i){
+            var frame = player.anim.frames[i];
+            new_frame_row(i, frame.time);
+        }
+    });
+
+    $("#reset_anim").click(function() {
+        player.anim = new Animation();
+        player.anim.frame(player);
+
+        $("#animation_name").val(player.anim.name);
+        $("#total_frames").text(player.anim.frames.length);
+        $("#total_time").text(player.anim.time);
+
+        $("#both-way")[0].checked = player.anim.reverse_too;
+        $("#on-move")[0].checked = player.anim.move_only;
+
+        $frame_rows = $("#frame-rows").find("div.row");
+        $frame_rows = $frame_rows.slice(2,$frame_rows.size());
+        $frame_rows.remove();
+
+        $("#time_0").val(player.anim.frames[0].time);
+
+    });
+
+
+
+    function new_frame_row(frame_id, time){
+        var html = '';
+        html += '<div class="row">';
+        html += '<span class="counter">#' + frame_id + '</span>';
+        html += '<input id="frame_' + frame_id + '" name="display" type="radio" class="form-control" style="float:left;">';
+        html += '<div class="player-attribute long_enough"><input id="time_' + frame_id + '" type="number" class="frame-time form-control" value="' + time + '"></div>';
+        html += '<button type="button" class="row-removal btn btn-lg btn-danger player-attribute small_square" id="del_frame_' + frame_id + '">X</button>';
+        html += '</div>';
+
+        $("#frame-rows").append($(html));
+    }
+
+    $("#new-frame").click(function(){
+        var time = 1000;
+
+        var $total_frames = $("#total_frames");
+        var $total_time = $("#total_time");
+        var frame_id = $total_frames.text();
+
+        new_frame_row(frame_id, time);
+
+        $total_frames.text(parseInt($total_frames.text())+1);
+        $total_time.text(parseInt($total_time.text())+time);
+        player.anim.add_frame();
+    });
+
+    $("#both-way").on('change', function(){
+        player.anim.reverse_too = $(this).is(":checked");
+        if(!player.anim.reverse_too){
+            player.anim.going_back=false;
+        }
+    });
+
+    $("#on-move").on('change', function(){
+        player.anim.move_only = $(this).is(":checked");
+    });
+
+    $("#animation_name").on('change', function(){
+        player.anim.name = $(this).val();
+    });
+
+    $(document).on('click', "button.row-removal", function(){
+        if($(this).data('removing')) return false;
+        $(this).data('removing', true);
+
+        $this = $(this);
+        $(this).parents('.row').fadeOut(function(){
+
+            var frame_id = parseInt($this.attr('id').split('del_frame_')[1]);
+            console.log("frame_id", frame_id);
+            player.anim.delete_frame(frame_id);
+
+            $(this).remove();
+
+            $counters = $('span.counter');
+            var total_time = 0;
+            var $tmp;
+            for(var i=0;i<$counters.size();++i){
+                $tmp = $counters.eq(i);
+                $tmp.text('#' + i);
+                total_time += parseInt($tmp.parent().find('input[type="number"]').val());
+            }
+            $("#total_time").text(total_time);
+
+
+            $radios = $('div#frame-rows').find('input[type=radio]');
+            for(i=0;i<$radios.size();++i){
+                $tmp = $radios.eq(i);
+                $tmp.attr('id', 'frame_' + i);
+            }
+
+            $inputs = $('div#frame-rows').find('input[type=number]');
+            for(i=0;i<$inputs.size();++i){
+                $tmp = $inputs.eq(i);
+                $tmp.attr('id', 'time_' + i);
+            }
+            $x_buttons = $('div#frame-rows').find('button');
+            for(i=0;i<$x_buttons.size();++i){
+                $tmp = $x_buttons.eq(i);
+                $tmp.attr('id', 'del_frame_' + i);
+            }
+
+            var $total_frames = $("#total_frames");
+            $total_frames.text(parseInt($total_frames.text())-1);
+
+
+        });
+    });
+    $(document).on('change', "input.frame-time", function(){
+        var old_value = $(this).data('value');
+        if(!old_value) old_value = 1000;
+        var new_value = parseInt($(this).val());
+
+        if(isNaN(new_value) || new_value<0){
+            new_value = 0;
+            $(this).val(new_value);
+        }
+        $(this).data('value', $(this).val());
+        var diff = new_value - old_value;
+
+        $total_time = $("#total_time");
+        $total_time.text(parseInt($total_time.text())+diff);
+
+
+        //$('#' + $selected.attr('id').split('select_')[1])
+        var frame_id = parseInt($(this).attr('id').split('time_')[1]);
+
+        player.anim.edit_frame(frame_id, new_value);
+    });
+
+    $(document).on('change', "input[type=radio]", function(){
+        $3_buttons = $("#3_buttons").find("button");
+        $3_anim_buttons = $("#3_anim_buttons").find("button");
+
+        $other_buttons = $("#body_editor").find("button");
+        $other_inputs =  $("#body_editor").find("input");
+        if($(this).val()=="animation"){
+            $3_anim_buttons.removeAttr('disabled');
+            $3_buttons.attr('disabled', 'disabled');
+            $other_buttons.attr('disabled', 'disabled');
+            $other_inputs.attr('disabled', 'disabled');
+            edit_index = -1;
+        }else{
+            $3_anim_buttons.attr('disabled', 'disabled');
+            $3_buttons.removeAttr('disabled');
+            $other_buttons.removeAttr('disabled');
+            $other_inputs.removeAttr('disabled');
+            edit_index = parseInt($(this).attr('id').split('frame_')[1]);
+            player.body = player.anim.frames[edit_index].body_settings;
+            updateInputs();
+        }
+        console.log(edit_index);
+
+    });
+
+
+
+    var content_select = $("#select_content > button");
+    var content_buttons = $("#select_content").find("a");
+
+    content_buttons.click(function () {
+
+        var $selected = $("#select_content").find('a.selected');
+        if ($(this) == $selected) return;
+
+        $selected.removeClass("selected");
+        $(this).addClass("selected");
+        $("#button_title").text($(this).text());
+
+        content_select.attr('disabled', 'disabled');
+
+        var $this = $(this);
+        $('#' + $selected.attr('id').split('select_')[1]).fadeOut(100, function () {
+            $('#' + $this.attr('id').split('select_')[1]).fadeIn(100, function () {
+                content_select.removeAttr('disabled');
+            });
+
+
+        });
+        console.log($selected.attr('id').split('select_')[1], 'hide');
+
+
+        console.log($(this).attr('id').split('select_')[1], 'show');
+
+    });
+
+    Number.prototype.mod = function (n) {
+        return ((this % n) + n) % n;
+    };
+
+    //http://stackoverflow.com/questions/572897/how-does-javascript-prototype-work -- great article
+    var advanced_mode = false;
+    var active_element_key = null;
+
+    function createImage(path) {
+        var image = new Image();
+        image.src = path;
+        return image;
+    }
+    var icon_path = 'static/';
+    var icon_extension = '.png';
+    var icon_names = [
+        'arm',
+        'blackbeard',
+        'blackhair',
+        'blueglove',
+        'forearm',
+        'head',
+        'redglove',
+        'redhair',
+        'shoulder',
+        'torso'
+    ];
+    var icons = {};
+    for (var i = 0; i < icon_names.length; ++i) {
+        icons[icon_names[i]] = createImage(icon_path + icon_names[i] + icon_extension);
+    }
+
+    var body_parts_names = {
+        hair: 'Hair',
+        beard: 'Beard',
+        head: 'Head',
+        torso: 'Torso',
+        left_shoulder: 'L Shoulder',
+        left_arm: 'L Arm',
+        left_forearm: 'L Forearm',
+        left_glove: 'L Glove',
+        right_shoulder: 'R Shoulder',
+        right_arm: 'R Arm',
+        right_forearm: 'R Forearm',
+        right_glove: 'R Glove'
+    };
+
+
+    var map_maxx = 10000;
+    var map_maxy = 10000;
+
+    var icon_ring = new Image;
+    icon_ring.src = "static/ring.png";
+
+
+    function Client(mouse_x, mouse_y) {
+        this.mouse_x = mouse_x;
+        this.mouse_y = mouse_y;
+    }
+
+    function Frame() {
+        this.time = 1000;
+        this.body_settings = {
+            hair: {
+                offset_x: 0,
+                offset_y: -14,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            beard: {
+                offset_x: 0,
+                offset_y: 26,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            head: {
+                offset_x: 0,
+                offset_y: 0,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            torso: {
+                offset_x: 0,
+                offset_y: 12,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_shoulder: {
+                offset_x: 56,
+                offset_y: 10,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_arm: {
+                offset_x: 58,
+                offset_y: 40,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_forearm: {
+                offset_x: 46,
+                offset_y: 60,
+                angle: 60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_glove: {
+                offset_x: 4,
+                offset_y: 68,
+                angle: 60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_shoulder: {
+                offset_x: -56,
+                offset_y: 10,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_arm: {
+                offset_x: -58,
+                offset_y: 40,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_forearm: {
+                offset_x: -46,
+                offset_y: 60,
+                angle: -60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_glove: {
+                offset_x: -4,
+                offset_y: 68,
+                angle: -60,
+                scale_x: 100,
+                scale_y: 100
+            }
+        }
+    }
+
+    function Animation() {
+        this.frames = [new Frame()];
+        this.time = 1000;
+        this.current_frame_index = 0;
+        this.current_frame = this.frames[0];
+        this.next_frame_time = 1000; //in ms
+
+        this.reverse_too = false;       //if true, animation's flow will be (start->end->start|start->end->start) instead of (start->end|start->end)
+        this.going_back = false;
+
+        this.move_only = false;
+
+        this.last_update_time = null;
+
+        this.name = "base";
+
+    }
+
+    var log_once_in = 10;
+    var log_counter = 0;
+    function log(text){
+        log_counter++;
+        if(log_counter>log_once_in){
+            log_counter = 0;
+            console.log(text);
+        }
+    }
+
+    Animation.prototype = {
+        add_frame: function () {
+            var frame = new Frame();
+            this.frames.push(frame);
+            this.time += frame.time;
+            //debugger;
+        },
+        edit_frame: function (index, time) {
+            this.time = (time - this.frames[index].time);
+            this.frames[index].time = time;
+
+        },
+        delete_frame: function (index) {
+            this.time -= this.frames[index].time;
+            this.frames = this.frames.slice(0, index).concat(this.frames.slice(index+1, this.frames.length));
+            if (this.currentFrame == index) {
+                this.currentFrame = 0;
+            }
+        },
+        next_frame: function () {
+            this.current_frame_index = (++this.current_frame_index).mod(this.frames.length);
+            this.current_frame = this.frames[this.current_frame_index];
+            this.next_frame_time += this.current_frame.time;
+
+        },
+        prev_frame: function () {
+            this.current_frame_index = (--this.current_frame_index).mod(this.frames.length);
+            this.current_frame = this.frames[this.current_frame_index];
+            this.next_frame_time += this.current_frame.time;
+        },
+
+        frame: function (obj) {
+
+            if (!this.frames.length) return false;
+            if (edit_index!=-1 && obj == player){
+                obj.body = this.frames[edit_index].body_settings;
+                return true;
+            }
+
+            if(obj.anim.move_only && !obj.moving){
+                obj.body = obj.default_body;
+                return true;
+            }
+
+            var time_diff;
+            if (!this.last_update_time) {
+                time_diff = 0;
+            } else {
+                time_diff = Date.now() - this.last_update_time;
+                time_diff %= this.time;
+                this.next_frame_time -= time_diff;
+
+                //debugger;
+                while (this.next_frame_time <= 0) {
+                    //console.log("next");
+
+                    if(this.reverse_too==true){
+                        if(this.going_back && this.current_frame_index==0){
+                            this.going_back = false;
+                        }else if(!this.going_back && this.current_frame_index == this.frames.length-1){
+                            this.going_back = true;
+                        }
+
+                        if( this.going_back ){
+                            this.prev_frame();
+                        }else{
+                            this.next_frame();
+                        }
+
+                    }else{
+                        this.next_frame();
+                    }
+
+
+
+                    //log(this.current_frame_index);
+                }
+
+
+            }
+            this.last_update_time = Date.now();
+
+            obj.body = this.current_frame.body_settings;
+            return true;
+
+        }
+
+    };
+
+
+    function Player(id, name, x, y) {
+        this.id = id;
+        this.name = name;
+        this.x = x;
+        this.y = y;
+        this.speed = 4; //100px / s
+        this.angle = 0;
+
+        this.moving = false;
+
+        this.anim = new Animation();
+        this.anim.frame(this);
+
+
+        this.default_body = {
+            hair: {
+                offset_x: 0,
+                offset_y: -14,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            beard: {
+                offset_x: 0,
+                offset_y: 26,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            head: {
+                offset_x: 0,
+                offset_y: 0,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            torso: {
+                offset_x: 0,
+                offset_y: 12,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_shoulder: {
+                offset_x: 56,
+                offset_y: 10,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_arm: {
+                offset_x: 58,
+                offset_y: 40,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_forearm: {
+                offset_x: 46,
+                offset_y: 60,
+                angle: 60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            left_glove: {
+                offset_x: 4,
+                offset_y: 68,
+                angle: 60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_shoulder: {
+                offset_x: -56,
+                offset_y: 10,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_arm: {
+                offset_x: -58,
+                offset_y: 40,
+                angle: 0,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_forearm: {
+                offset_x: -46,
+                offset_y: 60,
+                angle: -60,
+                scale_x: 100,
+                scale_y: 100
+            },
+            right_glove: {
+                offset_x: -4,
+                offset_y: 68,
+                angle: -60,
+                scale_x: 100,
+                scale_y: 100
+            }
+        };
+
+
+        this.icons = {
+            hair: {
+                name: 'blackhair'
+            },
+            beard: {
+                name: 'blackbeard'
+            },
+            head: {
+                name: 'head'
+            },
+            torso: {
+                name: 'torso'
+            },
+            left_shoulder: {
+                name: 'shoulder',
+                mirrored: true
+            },
+            left_arm: {
+                name: 'arm',
+                mirrored: true
+            },
+            left_forearm: {
+                name: 'forearm',
+                mirrored: true
+            },
+            left_glove: {
+                name: 'redglove',
+                mirrored: true
+            },
+            right_shoulder: {
+                name: 'shoulder'
+            },
+
+            right_arm: {
+                name: 'arm'
+            },
+
+            right_forearm: {
+                name: 'forearm'
+            },
+            right_glove: {
+                name: 'redglove'
+            }
+        };
+
+
+    }
+
+    var collision_radius = 60;
+    var collistion_radius_root = Math.pow(collision_radius * 2, 2);
+    var circle_circumeference = 2 * Math.PI * collision_radius;
+
+    function collision(player_id, player_new_x, player_new_y) {
+        var dx, dy;
+        for (var i = 0; i < players.length; ++i) {
+            if (player_id != players[i].id) {
+                dx = player_new_x - players[i].x;
+                dy = player_new_y - players[i].y;
+                //console.log("distance", dx*dx + dy*dy);
+                if (dx * dx + dy * dy < collistion_radius_root) {
+                    //return {x: players[i].x, y: players[i].y};
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    Player.prototype = {
+        up: function () {
+            if (!collision(this.id, this.x, this.y - this.speed))
+                this.y -= this.speed;
+        },
+        down: function () {
+            if (!collision(this.id, this.x, this.y + this.speed))
+                this.y += this.speed;
+        },
+        left: function () {
+            if (!collision(this.id, this.x - this.speed, this.y))
+                this.x -= this.speed;
+        },
+        right: function () {
+            if (!collision(this.id, this.x + this.speed, this.y))
+                this.x += this.speed;
+
+        },
+        render: function () {
+
+            for (var body_part in this.body) {
+
+                //console.log(body_part);
+            }
+
+        }
+    };
+
+
+    function renderObject(obj, body_part, icon_settings) {
+
+        if (icon_settings.hidden) return;
+
+        var icon = icons[icon_settings.name];
+        var cam_x = player.x - canvas.width / 2;
+        var cam_y = player.y - canvas.height / 2;
+
+        ctx.save();
+        ctx.translate(obj.x - cam_x, obj.y - cam_y);
+        //ctx.translate(canvas.width/2, canvas.height/2);
+        if (!advanced_mode || edit_index==-1) ctx.rotate(-obj.angle);
+        ctx.translate(body_part.offset_x, body_part.offset_y);
+        if (body_part.angle) ctx.rotate(body_part.angle * Math.PI / 180.0);
+        if (icon_settings.mirrored) ctx.scale(-1, 1);
+
+        if (body_part.scale_x != 100 || body_part.scale_y != 100) ctx.scale(body_part.scale_x / 100, body_part.scale_y / 100);
+
+        ctx.translate(-icon.width / 2, -icon.height / 2);
+        ctx.drawImage(icon, 0, 0);
+        ctx.restore();
+    }
+
+
+    //chcemy stwozyc gracza - zapytanie
+    //powinismy dostac id stworzonego gracza
+
+    var player = new Player(1, "Michau", 272, 272);
+    var mob = new Player(2, "Andrej", 500, 500);
+
+    var client = new Client();
+
+    player.render();
+
+    var players = [player, mob];
+
+
+    /*
+    function Editor(player){
+        this.player = player;
+
+    }
+    var editor = new Editor(player);
+    */
+
+    var body_editor = document.getElementById('body_editor');
+    //body_editor.innerHTML = '';
+    var html = "";
+    for (var body_part_name in player.body) {
+        if (player.body.hasOwnProperty(body_part_name)) {
+            var body_part = player.body[body_part_name];
+
+            html += '<div class="row">';
+            html += '<button type="button" id="' + body_part_name + '_select" class="btn btn-sm btn-default player-attribute">' + body_parts_names[body_part_name] + '</button>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_offset_x" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_offset_y" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_angle" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_scale_x" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_scale_y" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute"><input id="' + body_part_name + '_group" type="number" class="form-control"></div>';
+            html += '<div class="player-attribute-hide"><input id="' + body_part_name + '_hide" type="checkbox" class="form-control"></div>';
+            html += '</div>';
+
+            console.log('i', i);
+        }
+    }
+    body_editor.innerHTML = html;
+
+
+    function updateGroupedElements(key, field_name, value, last_value) {
+        var group = document.getElementById(key + '_group');
+        var field = document.getElementById(key + '_' + field_name);
+        var diff = value - last_value;
+
+        if (group.value && diff) {
+
+            var body = player.anim.frames[edit_index].body_settings;
+            var groups = document.querySelectorAll("input[id$='_group']");
+
+
+            for (var i = 0; i < groups.length; ++i) {
+                if (group.id != groups[i].id && group.value == groups[i].value) {
+
+                    var grouped_key = groups[i].id.split('_group')[0];
+                    var field_to_update = document.getElementById(grouped_key + '_' + field_name);
+
+                    var parsed_value = parseInt(field_to_update.value);
+                    if (parsed_value != NaN) {
+                        field_to_update.value = parsed_value + diff;
+                        field_to_update.last_value = field_to_update.value;
+                        body[grouped_key][field_name] = field_to_update.value;
+                    }
+
+                }
+            }
+        }
+    }
+
+
+    function updateInputs(initial) {
+
+        for (var obj in player.body) {
+
+            var $select = document.getElementById(obj + '_select');
+            var $offset_x = document.getElementById(obj + '_offset_x');
+            var $offset_y = document.getElementById(obj + '_offset_y');
+            var $angle = document.getElementById(obj + '_angle');
+            var $scale_x = document.getElementById(obj + '_scale_x');
+            var $scale_y = document.getElementById(obj + '_scale_y');
+            var $hide = document.getElementById(obj + '_hide');
+
+            $offset_x.value = player.body[obj].offset_x;
+            $offset_y.value = player.body[obj].offset_y;
+            $angle.value = player.body[obj].angle;
+            $scale_x.value = player.body[obj].scale_x;
+            $scale_y.value = player.body[obj].scale_y;
+
+            $offset_x.last_value = $offset_x.value;
+            $offset_y.last_value = $offset_y.value;
+            $angle.last_value = $angle.value;
+            $scale_x.last_value = $scale_x.value;
+            $scale_y.last_value = $scale_y.value;
+
+
+            if (initial) {
+                $select.addEventListener('click', function (e) {
+                    var key = this.attributes.id.value.split('_select')[0];
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                        advanced_mode = false;
+                        active_element_key = null;
+                    } else {
+                        $('button.selected').removeClass('selected');
+                        $(this).addClass('selected');
+                        advanced_mode = true;
+                        active_element_key = key;
+                    }
+                    console.log(key);
+                }, false);
+
+                $offset_x.addEventListener('input', function (e) {                //keydown, change, keyup
+                    var body = player.anim.frames[edit_index].body_settings;
+                    var key = this.attributes.id.value.split('_offset_x')[0];
+                    updateGroupedElements(key, 'offset_x', this.value, this.last_value);
+                    body[key].offset_x = this.value;
+                    this.last_value = this.value;
+                }, false);
+
+                $offset_y.addEventListener('input', function (e) {
+                    var body = player.anim.frames[edit_index].body_settings;
+                    var key = this.attributes.id.value.split('_offset_y')[0];
+                    updateGroupedElements(key, 'offset_y', this.value, this.last_value);
+                    body[key].offset_y = this.value;
+                    this.last_value = this.value;
+                }, false);
+
+                $angle.addEventListener('input', function (e) {
+                    var body = player.anim.frames[edit_index].body_settings;
+                    var key = this.attributes.id.value.split('_angle')[0];
+                    updateGroupedElements(key, 'angle', this.value, this.last_value);
+                    body[key].angle = this.value;
+                    this.last_value = this.value;
+                }, false);
+
+                $scale_x.addEventListener('input', function (e) {
+                    var body = player.anim.frames[edit_index].body_settings;
+                    var key = this.attributes.id.value.split('_scale_x')[0];
+                    updateGroupedElements(key, 'scale_x', this.value, this.last_value);
+                    body[key].scale_x = this.value;
+                    this.last_value = this.value;
+                }, false);
+
+                $scale_y.addEventListener('input', function (e) {
+                    var body = player.anim.frames[edit_index].body_settings;
+                    var key = this.attributes.id.value.split('_scale_y')[0];
+                    updateGroupedElements(key, 'scale_y', this.value, this.last_value);
+                    body[key].scale_y = this.value;
+                    this.last_value = this.value;
+                }, false);
+
+                $hide.addEventListener('change', function (e) {
+                    var key = this.attributes.id.value.split('_hide')[0];
+                    player.icons[key].hidden = this.checked;
+                }, false);
+            }
+        }
+    }
+    updateInputs(true);
+
+
+    document.getElementById('save').addEventListener('click', function (e) {
+        document.getElementsByTagName('textarea')[0].value = JSON.stringify(player.body);
+    });
+
+    document.getElementById('load').addEventListener('click', function (e) {
+        var json_data = document.getElementsByTagName('textarea')[0].value;
+        player.anim.frames[edit_index].body_settings = JSON.parse(json_data);
+        player.body = player.anim.frames[edit_index].body_settings;
+        updateInputs();
+    });
+
+    document.getElementById('reset').addEventListener('click', function (e) {
+        /*
+        players.shift();
+        player = new Player(1, "Michau", 272, 272);
+        players.unshift(player);
+        */
+
+        var body_settings = player.anim.frames[edit_index].body_settings;
+        var def_settings = player.default_body;
+
+        //debugger;
+        for(var part in def_settings){
+            if(def_settings.hasOwnProperty(part)){
+                for(var s in def_settings[part]){
+                    if(def_settings[part].hasOwnProperty(s)){
+                        body_settings[part][s] = def_settings[part][s];
+                    }
+                }
+            }
+        }
+
+        player.body = player.anim.frames[edit_index].body_settings;
+        updateInputs();
+    });
+
+
+    console.log(player.x, player.y);
+
+
+    var map = []; // Or you could call it "key"
+
+
+    var FPS = 60.0;
+    var interval = 1000.0 / FPS;
+    var canvas = document.getElementsByTagName("canvas")[0];
+    var ctx = canvas.getContext("2d");
+
+
+    function mod(n, m) {
+        return ((n % m) + m) % m;
+    }
+
+    /*
+     http://www.javascripter.net/faq/keycodes.htm
+     some keycodes are different on different browsers
+    */
+    onkeydown = function (e) {
+        map[e.keyCode] = true;
+        console.log(e.keyCode, e.which);
+        if (advanced_mode && edit_index!=-1) {
+
+            var body = player.anim.frames[edit_index].body_settings;
+
+            if (e.keyCode == 38) { //up arrow
+                var $offset_y = document.getElementById(active_element_key + '_offset_y');
+                var current_offset_y = parseInt($offset_y.value) || 0;
+                $offset_y.value = current_offset_y - 1;
+                updateGroupedElements(active_element_key, 'offset_y', $offset_y.value, $offset_y.last_value);
+                $offset_y.last_value = $offset_y.value;
+                body[active_element_key]['offset_y'] = $offset_y.value;
+                return false;
+            }
+            if (e.keyCode == 40) { //down arrow
+                var $offset_y = document.getElementById(active_element_key + '_offset_y');
+                var current_offset_y = parseInt($offset_y.value) || 0;
+                $offset_y.value = current_offset_y + 1;
+                updateGroupedElements(active_element_key, 'offset_y', $offset_y.value, $offset_y.last_value);
+                $offset_y.last_value = $offset_y.value;
+                body[active_element_key]['offset_y'] = $offset_y.value;
+                return false;
+            }
+            if (e.keyCode == 37) { //left arrow
+                var $offset_x = document.getElementById(active_element_key + '_offset_x');
+                var current_offset_x = parseInt($offset_x.value) || 0;
+                $offset_x.value = current_offset_x - 1;
+                updateGroupedElements(active_element_key, 'offset_x', $offset_x.value, $offset_x.last_value);
+                $offset_x.last_value = $offset_x.value;
+                body[active_element_key]['offset_x'] = $offset_x.value;
+                return false;
+            }
+            if (e.keyCode == 39) { //right arrow
+                var $offset_x = document.getElementById(active_element_key + '_offset_x');
+                var current_offset_x = parseInt($offset_x.value) || 0;
+                $offset_x.value = current_offset_x + 1;
+                updateGroupedElements(active_element_key, 'offset_x', $offset_x.value, $offset_x.last_value);
+                $offset_x.last_value = $offset_x.value;
+                body[active_element_key]['offset_x'] = $offset_x.value;
+                return false;
+            }
+
+
+            if (e.keyCode == 189 || e.keyCode == 173) {//-
+                var $scale_x = document.getElementById(active_element_key + '_scale_x');
+                var current_scale_x = parseInt($scale_x.value) || 0;
+                $scale_x.value = current_scale_x - 2;
+                updateGroupedElements(active_element_key, 'scale_x', $scale_x.value, $scale_x.last_value);
+                $scale_x.last_value = $scale_x.value;
+                body[active_element_key]['scale_x'] = $scale_x.value;
+                return false;
+            }
+            if (e.keyCode == 187 || e.keyCode == 61) {//+
+                var $scale_x = document.getElementById(active_element_key + '_scale_x');
+                var current_scale_x = parseInt($scale_x.value) || 0;
+                $scale_x.value = current_scale_x + 2;
+                updateGroupedElements(active_element_key, 'scale_x', $scale_x.value, $scale_x.last_value);
+                $scale_x.last_value = $scale_x.value;
+                body[active_element_key]['scale_x'] = $scale_x.value;
+                return false;
+            }
+
+
+            if (e.keyCode == 219) {//[
+                var $scale_y = document.getElementById(active_element_key + '_scale_y');
+                var current_scale_y = parseInt($scale_y.value) || 0;
+                $scale_y.value = current_scale_y - 2;
+                updateGroupedElements(active_element_key, 'scale_y', $scale_y.value, $scale_y.last_value);
+                $scale_y.last_value = $scale_y.value;
+                body[active_element_key]['scale_y'] = $scale_y.value;
+                return false;
+            }
+            if (e.keyCode == 221) {//]
+                var $scale_y = document.getElementById(active_element_key + '_scale_y');
+                var current_scale_y = parseInt($scale_y.value) || 0;
+                $scale_y.value = current_scale_y + 2;
+                updateGroupedElements(active_element_key, 'scale_y', $scale_y.value, $scale_y.last_value);
+                $scale_y.last_value = $scale_y.value;
+                body[active_element_key]['scale_y'] = $scale_y.value;
+                return false;
+            }
+
+            if (e.keyCode == 186 || e.keyCode == 59) {//;
+                var $angle = document.getElementById(active_element_key + '_angle');
+                var current_angle = parseInt($angle.value) || 0;
+                $angle.value = current_angle - 2;
+                updateGroupedElements(active_element_key, 'angle', $angle.value, $angle.last_value);
+                $angle.last_value = $angle.value;
+                body[active_element_key]['angle'] = $angle.value;
+                return false;
+            }
+            if (e.keyCode == 222) {//'
+                var $angle = document.getElementById(active_element_key + '_angle');
+                var current_angle = parseInt($angle.value) || 0;
+                $angle.value = current_angle + 2;
+                updateGroupedElements(active_element_key, 'angle', $angle.value, $angle.last_value);
+                $angle.last_value = $angle.value;
+                body[active_element_key]['angle'] = $angle.value;
+                return false;
+            }
+
+
+
+        }
+
+    };
+    onkeyup = function (e) {
+        console.log("up", e.keyCode);
+        map[e.keyCode] = false;
+
+
+        if(e.keyCode == 192){
+            show_collision_cirles = !show_collision_cirles;
+        }
+
+        if (advanced_mode) {
+
+
+            if (e.keyCode == 188) { //<
+                var $buttons = $('#body_editor').find('button.player-attribute');
+                var $selected_button = $('button.player-attribute.selected')[0];
+                if ($selected_button) {
+                    for (var i = 0; i < $buttons.size(); ++i) {
+                        if ($selected_button.id == $buttons[i].id) {
+
+                            $buttons[mod(i - 1, $buttons.size())].click();
+                            //break;
+                            return false;
+
+                        }
+                    }
+                }
+            }
+            if (e.keyCode == 190) { //>
+                var $buttons = $('#body_editor').find('button.player-attribute');
+                var $selected_button = $('button.player-attribute.selected')[0];
+                if ($selected_button) {
+                    for (var i = 0; i < $buttons.size(); ++i) {
+                        if ($selected_button.id == $buttons[i].id) {
+
+                            $buttons[mod(i + 1, $buttons.size())].click();
+                            //break;
+                            return false;
+
+                        }
+                    }
+                }
+            }
+
+        }
+
+    };
+
+    /*
+     onkeypress = function(e){
+     console.log("press", e.keyCode);
+
+     };
+     */
+
+
+    function update() {
+        if (map[87] && !$(':focus').size()) player.up(); //w
+        if (map[65] && !$(':focus').size()) player.left(); //a
+        if (map[83] && !$(':focus').size()) player.down(); //s
+        if (map[68] && !$(':focus').size()) player.right(); //d
+
+        if( (map[87] || map[65] || map[83] || map[68]) && !$(':focus').size() ){
+            player.moving = true;
+        }else{
+            player.moving = false;
+        }
+
+    }
+
+
+    function render() {
+        ctx.fillStyle = "#FFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        /*
+         Usually it is scale * rotation * translation. However, if you want to rotate an object around a certain point, then it is scale * point_translation * rotation * object_translation.
+         tutaj wydaje sie, ze jest na odwrot kolejnosc
+         */
+
+        ctx.drawImage(icon_ring, 0 - player.x + canvas.width / 2, 0 - player.y + canvas.height / 2);
+
+
+
+        for (var i = 0; i < players.length; ++i) {
+            var obj = players[i];
+            var cam_x = player.x - canvas.width / 2;
+            var cam_y = player.y - canvas.height / 2;
+
+            obj.anim.frame(obj);
+
+            /*
+            var s = obj.anim.frame().body_settings;
+
+            renderObject(obj, s.torso, obj.icons.torso);
+            renderObject(obj, s.left_forearm, obj.icons.left_forearm);
+            renderObject(obj, s.left_glove, obj.icons.left_glove);
+            renderObject(obj, s.left_arm, obj.icons.left_arm);
+            renderObject(obj, s.left_shoulder, obj.icons.left_shoulder);
+            renderObject(obj, s.right_forearm, obj.icons.right_forearm);
+            renderObject(obj, s.right_glove, obj.icons.right_glove);
+            renderObject(obj, s.right_arm, obj.icons.right_arm);
+            renderObject(obj, s.right_shoulder, obj.icons.right_shoulder);
+            renderObject(obj, s.head, obj.icons.head);
+            renderObject(obj, s.hair, obj.icons.hair);
+            renderObject(obj, s.beard, obj.icons.beard);
+            */
+
+            renderObject(obj, obj.body.torso, obj.icons.torso);
+            renderObject(obj, obj.body.left_forearm, obj.icons.left_forearm);
+            renderObject(obj, obj.body.left_glove, obj.icons.left_glove);
+            renderObject(obj, obj.body.left_arm, obj.icons.left_arm);
+            renderObject(obj, obj.body.left_shoulder, obj.icons.left_shoulder);
+            renderObject(obj, obj.body.right_forearm, obj.icons.right_forearm);
+            renderObject(obj, obj.body.right_glove, obj.icons.right_glove);
+            renderObject(obj, obj.body.right_arm, obj.icons.right_arm);
+            renderObject(obj, obj.body.right_shoulder, obj.icons.right_shoulder);
+            renderObject(obj, obj.body.head, obj.icons.head);
+            renderObject(obj, obj.body.hair, obj.icons.hair);
+            renderObject(obj, obj.body.beard, obj.icons.beard);
+
+
+        }
+
+        if(show_collision_cirles){
+            for (var i = 0; i < players.length; ++i) {
+                var obj = players[i];
+                var cam_x = player.x - canvas.width / 2;
+                var cam_y = player.y - canvas.height / 2;
+                ctx.beginPath();
+                ctx.arc(obj.x - cam_x, obj.y - cam_y, collision_radius, 0, 2 * Math.PI, false);
+                ctx.lineWidth = 1;//5;
+                ctx.strokeStyle = '#000';//'#FFF';
+                ctx.stroke();
+            }
+        }
+
+
+
+        /*
+         for(var i=0;i<players.length;++i) { //hit radius
+         var obj = players[i];
+         var cam_x = player.x - canvas.width / 2;
+         var cam_y = player.y - canvas.height / 2;
+
+         ctx.beginPath();
+         ctx.lineWidth = 3;//5;
+         ctx.strokeStyle = '#FFF';//'#FFF';
+         ctx.arc(obj.x-cam_x, obj.y-cam_y, 40, 0, 2 * Math.PI, false);
+         ctx.stroke();
+
+         }
+         */
+
+        /*
+         for(var i=0;i<players.length;++i) { //collision radius
+         var obj = players[i];
+         var cam_x = player.x - canvas.width / 2;
+         var cam_y = player.y - canvas.height / 2;
+
+         ctx.save();
+
+         ctx.translate(obj.x-cam_x, obj.y-cam_y);
+         ctx.rotate(-obj.angle);
+         ctx.translate(0, 20);
+
+         ctx.beginPath();
+         ctx.lineWidth = 3;//5;
+         ctx.strokeStyle = '#000';//'#FFF';
+         ctx.arc(0, 0, collision_radius, 0, 2 * Math.PI, false);
+         ctx.stroke();
+
+         ctx.restore();
+         }
+         */
+
+
+    }
+
+    function render_loop() {
+        render();
+        window.requestAnimationFrame(render_loop);
+    }
+
+    if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(render_loop);
+    } else {
+        setInterval(render, interval);
+    }
+    setInterval(update, interval);
+
+
+    function calculate_new_position() {
+        client_x = (screen_x - screen_width / 2) / ratio + px;
+        client_y = (screen_y - height / 2) / ratio + size;
+    }
+
+
+    canvas.onmousemove = function (e) {
+        if (advanced_mode && edit_index!=-1) {
+
+            if (tracking) {
+
+                var body = player.anim.frames[edit_index].body_settings;
+
+                end_x = e.clientX;
+                end_y = e.clientY;
+
+                var diff_x = end_x - start_x;
+                var $offset_x = document.getElementById(active_element_key + '_offset_x');
+                var current_offset_x = parseInt($offset_x.value) || 0;
+                $offset_x.value = current_offset_x + diff_x;
+                updateGroupedElements(active_element_key, 'offset_x', $offset_x.value, $offset_x.last_value);
+                $offset_x.last_value = $offset_x.value;
+                body[active_element_key]['offset_x'] = $offset_x.value;
+
+                var diff_y = end_y - start_y;
+                var $offset_y = document.getElementById(active_element_key + '_offset_y');
+                var current_offset_y = parseInt($offset_y.value) || 0;
+                $offset_y.value = current_offset_y + diff_y;
+                updateGroupedElements(active_element_key, 'offset_y', $offset_y.value, $offset_y.last_value);
+                $offset_y.last_value = $offset_y.value;
+                body[active_element_key]['offset_y'] = $offset_y.value;
+
+                start_x = end_x;
+                start_y = end_y;
+
+            }
+
+        } else {
+            var rect = canvas.getBoundingClientRect();
+            var mouse_x = e.clientX - canvas.width / 2 - rect.left;
+            var mouse_y = e.clientY - canvas.height / 2 - rect.top;
+            player.angle = Math.atan2(mouse_x, mouse_y); // Math.PI/2;
+            //console.log(mouse_x, mouse_y);
+        }
+
+    };
+
+    var tracking = false, start_x, start_y, end_x, end_y;
+
+    canvas.onmousedown = function (e) {
+        if (advanced_mode && edit_index!=-1) {
+            if (tracking) return;
+            tracking = true;
+            start_x = e.clientX;
+            start_y = e.clientY;
+            console.log('mousedown', start_x, start_y);
+        }
+    };
+
+    canvas.onmouseup = function (e) {
+        if (advanced_mode) {
+            tracking = false;
+            //end_x = e.clientX;
+            //end_y = e.clientY;
+            //console.log('mouseup', end_x, end_y);
+        }
+    };
+
+
+    //http://ejohn.org/apps/learn/
+    //http://codepen.io/ImagineProgramming/storydump/oop-canvas-rendering-javascript
+
+    //Cała strona /, lista serwerów, skrypty, css, planety. Varnish zwraca to szybciej niż NodeJS.
+    //REDIS tez sie przyda
+
+
+</script>
+
+</html>
+
+
